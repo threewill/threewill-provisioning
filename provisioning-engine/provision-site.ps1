@@ -28,7 +28,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$SiteTitle,
     [Parameter(Mandatory = $true)]
-    [ValidateSet("IntranetSpokeSite", "CommunicationSite", "TeamSite", "MSTeam")]    
+    [ValidateSet("IntranetSpokeSite", "CommunicationSite", "TeamSite", "TeamSiteWithoutM365Group", "MSTeam")]    
     [string]$EntityType,
     [switch]$SkipGetCredentials,
     [switch]$BatchMode
@@ -97,6 +97,7 @@ $entityTypeConfigKey = switch ($EntityType)
 {
     "CommunicationSite" { "communicationSiteProvisioning" }
     "TeamSite" { "teamSiteProvisioning" }
+    "TeamSiteWithoutM365Group" { "teamSiteWithoutM365GroupProvisioning" }
     "IntranetSpokeSite" { "intranetSpokeSiteProvisioning" }
     Default { "msTeamsProvisioning" }
 }

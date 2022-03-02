@@ -145,6 +145,9 @@
         "teamSiteProvisioning": {
           "$ref": "#/definitions/entityPlugin"
         },
+        "teamSiteWithoutM365GroupProvisioning": {
+          "$ref": "#/definitions/entityPlugin"
+        },
         "msTeamsProvisioning": {
           "description": "Defines a plug-in to apply unique scripts for the MS Teams entity type",
           "type": "object",
