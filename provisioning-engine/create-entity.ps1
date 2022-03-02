@@ -28,7 +28,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$SiteDescription,    
     [Parameter(Mandatory = $true)]
-    [ValidateSet("IntranetSpokeSite", "CommunicationSite", "TeamSite", "MSTeam")]    
+    [ValidateSet("IntranetSpokeSite", "CommunicationSite", "TeamSite", "TeamSiteWithoutM365Group", "MSTeam")]    
     [string]$EntityType,
     [ValidateSet("", "Public", "Private")]    
     [string]$Visibility,
@@ -102,7 +102,7 @@ if ($EntityType -eq "CommunicationSite")
             # https://docs.microsoft.com/en-us/powershell/module/sharepoint-pnp/new-pnpsite?view=sharepoint-ps    
             #
             Write-Output "New-PnPSite -Type CommunicationSite -Title $($SiteTitle) -Url $($siteUrl)"
-            $newSiteUrl = New-PnPSite -Type $EntityType `
+            $newSiteUrl = New-PnPSite -Type CommunicationSite `
                 -Title $SiteTitle `
                 -Url $siteUrl `
                 -Description $SiteDescription `
@@ -126,17 +126,35 @@ elseif ($EntityType -eq "TeamSite")
         if ($null -eq $existingSite)
         {
             # if there is no provisioning script, create the new site
+            Write-Output "New-PnPSite -Type TeamSite -Title $($SiteTitle) -Alias $($Site) -Description $($SiteDescription)"
+            $newSiteUrl = New-PnPSite -Type TeamSite `
+                -Title $SiteTitle `
+                -Alias $Site `
+                -Description $SiteDescription
+        }
+        else 
+        {
+            # Site exists and not created
+            Write-Warning "Site already exists so it wasn't created. $($existingSite.Url)"
+            $newSiteUrl = $existingSite.Url
+        
+            Write-Output "$($existingSite.Url)" >> existingsites.log
+        }
+    }
+}
+elseif ($EntityType -eq "TeamSiteWithoutM365Group")
+{
+    $provisioningScript = Get-NestedMember $config "plugins.teamSiteWithoutM365GroupProvisioning.provisioningScript"
+    if ($null -eq $provisioningScript)
+    {
+        if ($null -eq $existingSite)
+        {
+            # if there is no provisioning script, create the new site
+            Write-Output "New-PnPSite -Type TeamSiteWithoutMicrosoft365Group -Title $($SiteTitle) -Url $($siteUrl) -Description $($SiteDescription)"
             $newSiteUrl = New-PnPSite -Type TeamSiteWithoutMicrosoft365Group `
                 -Title $SiteTitle `
                 -Url $siteUrl `
                 -Description $SiteDescription
-
-
-            # Write-Output "New-PnPSite -Type TeamSite -Title $($SiteTitle) -Alias $($Site) -Url $($siteUrl)"
-            # $newSiteUrl = New-PnPSite -Type TeamSite `
-            #     -Title $SiteTitle `
-            #     -Alias $Site `
-            #     -Description $SiteDescription
         }
         else 
         {
@@ -157,7 +175,7 @@ elseif ($EntityType -eq "MSTeam")
         {
             Write-Output "New-Team -MailNickName $($Site) -DisplayName $($SiteTitle) -Description $($SiteDescription) -Visibility $($Visibility)"
             # The MailNickName should be the URL
-            $team = New-Team -MailNickName $Site `
+            $newSiteUrl = New-Team -MailNickName $Site `
                 -DisplayName $SiteTitle `
                 -Description $SiteDescription `
                 -Visibility $Visibility
@@ -180,7 +198,7 @@ elseif ($EntityType -eq "IntranetSpokeSite")
         if ($null -eq $existingSite)
         {
             # if there is no provisioning script, create the new site
-            $newSiteUrl = New-PnPSite -Type "CommunicationSite" `
+            $newSiteUrl = New-PnPSite -Type CommunicationSite `
                 -Title $SiteTitle `
                 -Url $siteUrl `
                 -Description $SiteDescription `
