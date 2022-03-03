@@ -164,19 +164,22 @@ else
     }
 
     #Post-Provisioning
-    $postProvisioningScript = Get-NestedMember $config "plugins.$entityTypeConfigKey.postProvisioningTask"
-    if ($null -ne $postProvisioningScript)
+    $postProvisioningScripts = Get-NestedMember $config "plugins.$entityTypeConfigKey.postProvisioningTask"
+    if ($null -ne $postProvisioningScripts)
     {
-        if (Test-Path -Path $postProvisioningScript)
+        foreach ($postProvisioningScript in $postProvisioningScripts)
         {
-            Write-Host "Running post-provisioning script '$postProvisioningScript'"
+            if (Test-Path -Path $postProvisioningScript)
+            {
+                Write-Host "Running post-provisioning script '$postProvisioningScript'"
 
-            # Run the post-provisioning script, if there is one
-            . $postProvisioningScript -TenantUrl $config.rootSiteUrl -SitePath $Site -SiteTitle $SiteTitle -FullSiteUrl $siteUrl -ConfigFile $ConfigFile
-        }
-        else
-        {
-            Write-Warning "Could not find post-provisioning script '$postProvisioningScript'"
+                # Run the post-provisioning script, if there is one
+                . $postProvisioningScript -TenantUrl $config.rootSiteUrl -SitePath $Site -SiteTitle $SiteTitle -FullSiteUrl $siteUrl -ConfigFile $ConfigFile
+            }
+            else
+            {
+                Write-Warning "Could not find post-provisioning script '$postProvisioningScript'"
+            }
         }
     }
 
