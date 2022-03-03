@@ -82,7 +82,10 @@
         },
         "postProvisioningTask": {
           "description": "A path to a PowerShell script with post-provisioning tasks",
-          "type": "string"
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "provisioningScript": {
           "description": "A path to a PowerShell script to create the site and provide site provisioning",
