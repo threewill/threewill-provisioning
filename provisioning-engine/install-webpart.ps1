@@ -111,19 +111,17 @@ PROCESS
         # We're just installing apps to the Tenant
         $url = $config.adminSiteUrl
 
-        if ($SkipGetCredentials.IsPresent -eq $false)
+
+        try
         {
-            try
-            {
-                # Connect to the Tenant Admin site
-                Write-Log "[$url] Connecting" -WriteToHost
-                Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
-            }
-            catch
-            {
-                Write-Log $_ -Level Error
-                exit
-            }
+            # Connect to the Tenant Admin site
+            Write-Log "[$url] Connecting" -WriteToHost
+            Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
+        }
+        catch
+        {
+            Write-Log $_ -Level Error
+            exit
         }
 
         foreach($file in $webpartFiles)
