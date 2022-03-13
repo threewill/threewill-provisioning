@@ -43,11 +43,11 @@ Set-StrictMode -Version "3.0"
 # only write out stuff if we aren't being called by another script
 if ($BatchMode.IsPresent -eq $false)
 {
-    Write-Output "".PadRight(50, "=")
-    Write-Output "provision-site.ps1"
-    Write-Output "  params: Site:$($Site)"
-    Write-Output "  params: ConfigFile:$($ConfigFile),Site:$($Site),EntityType:$($EntityType)"
-    Write-Output "".PadRight(50, "=")
+    Write-Log "".PadRight(50, "=")
+    Write-Log "provision-site.ps1"
+    Write-Log "  params: Site:$($Site)"
+    Write-Log "  params: ConfigFile:$($ConfigFile),Site:$($Site),EntityType:$($EntityType)"
+    Write-Log "".PadRight(50, "=") -WriteNewLine
 }
 
 # Get configuration
@@ -56,15 +56,15 @@ $config = Get-Content $ConfigFile | Out-String | ConvertFrom-Json
 # only write out stuff if we aren't being called by another script
 if ($BatchMode.IsPresent -eq $false)
 {
-    Write-Output "Start Config Values ".PadRight(50, "*")
-    Write-Output $config
-    Write-Output "End Config Values ".PadRight(50, "*")
+    Write-Log "Start Config Values ".PadRight(50, "*")
+    Write-Log $config
+    Write-Log "End Config Values ".PadRight(50, "*") -WriteNewLine
 }
 
 # this allows us to set $cred before executing script and not be prompted
 if ($SkipGetCredentials.IsPresent -eq $false)
 {
-    Write-Output "Prompt for SharePoint Credentials"
+    Write-Log "Prompt for SharePoint Credentials"
     $global:cred = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
 }
 
@@ -83,7 +83,7 @@ if ($BatchMode.IsPresent -eq $false)
 
         if ($null -eq $existingSite)
         {
-            Write-Warning "The site '$siteUrl' does not exist.  Cannot apply provisioning."
+            Write-Log "The site '$siteUrl' does not exist.  Cannot apply provisioning." -Level Warn
             return
         }
     }
@@ -113,13 +113,13 @@ else
     # Get connection to the site
     if ($EntityType -ne "MSTeam")
     {
-        Write-Output "Connect-PnpOnline"
+        Write-Log "[$siteUrl] Connect-PnpOnline" -WriteToHost
         Connect-PnPOnline -Url $siteUrl -Credentials $global:cred
     }
     else
     {
         # Connect to Teams
-        Write-Output "Connect-MicrosoftTeams"
+        Write-Log "[$siteUrl] Connect-MicrosoftTeams" -WriteToHost
         Connect-MicrosoftTeams -Credential $global:cred
     }
 
@@ -129,14 +129,14 @@ else
     {
         if (Test-Path -Path $preProvisioningScript)
         {
-            Write-Host "Running pre-provisioning script '$preProvisioningScript'"
+            Write-Log "[$siteUrl] Running pre-provisioning script '$preProvisioningScript'" -WriteToHost
 
             # Run the pre-provisioning script, if there is one
             . $preProvisioningScript -TenantUrl $config.rootSiteUrl -SitePath $Site -SiteTitle $SiteTitle -FullSiteUrl $siteUrl -ConfigFile $ConfigFile
         }
         else
         {
-            Write-Warning "Could not find pre-provisioning script '$preProvisioningScript'"
+            Write-Log "[$siteUrl] Could not find pre-provisioning script '$preProvisioningScript'" -Level Warn
         }
 
         
@@ -150,14 +150,14 @@ else
         {
             if (Test-Path -Path $provisioningTemplate)
             {
-                Write-Host "Inovking PnP template '$provisioningTemplate'"
+                Write-Log "[$siteUrl] Inovking PnP template '$provisioningTemplate'" -WriteToHost
 
                 # Invoke the provisioning template, if there is one
                 Invoke-PnPSiteTemplate -Path $provisioningTemplate
             }
             else
             {
-                Write-Warning "Could not find provisioning template '$provisioningTemplate'"
+                Write-Log "[$siteUrl] Could not find provisioning template '$provisioningTemplate'" -Level Warn
             }
             
         }
@@ -171,14 +171,14 @@ else
         {
             if (Test-Path -Path $postProvisioningScript)
             {
-                Write-Host "Running post-provisioning script '$postProvisioningScript'"
+                Write-Log "[$siteUrl] Running post-provisioning script '$postProvisioningScript'" -WriteToHost
 
                 # Run the post-provisioning script, if there is one
                 . $postProvisioningScript -TenantUrl $config.rootSiteUrl -SitePath $Site -SiteTitle $SiteTitle -FullSiteUrl $siteUrl -ConfigFile $ConfigFile
             }
             else
             {
-                Write-Warning "Could not find post-provisioning script '$postProvisioningScript'"
+                Write-Log "[$siteUrl] Could not find post-provisioning script '$postProvisioningScript'" -Level Warn
             }
         }
     }
@@ -197,7 +197,7 @@ else
                 $ownerGroup = Get-PnPGroup -AssociatedOwnerGroup
                 foreach ($o in $owners) {
                     Add-PnPGroupMember -EmailAddress $o -Group $ownerGroup.Id -Connection $connection
-                    Write-Host "$o added to Site Owners"
+                    Write-Log "[$siteUrl] $o added to Site Owners" -WriteToHost
                 }
             }
 
@@ -207,7 +207,7 @@ else
                 $memberGroup = Get-PnPGroup -AssociatedMemberGroup
                 foreach ($m in $members) {
                     Add-PnPGroupMember -EmailAddress $m -Group $memberGroup.Id -Connection $connection
-                    Write-Host "$m added to Site Members"
+                    Write-Log "[$siteUrl] $m added to Site Members" -WriteToHost
                 }
             }
 
@@ -217,7 +217,7 @@ else
                 $visitorGroup = Get-PnPGroup -AssociatedVisitorGroup
                 foreach ($v in $visitors) {
                     Add-PnPGroupMember -EmailAddress $v -Group $visitorGroup.Id -Connection $connection
-                    Write-Host "$v added to Site Visitors"
+                    Write-Log "[$siteUrl] $v added to Site Visitors" -WriteToHost
                 }
             }
         }

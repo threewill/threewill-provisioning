@@ -41,7 +41,7 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version "3.0"
 $scriptTime = [System.Diagnostics.Stopwatch]::StartNew()
 $statusTime = (Get-Date).ToUniversalTime().ToString("yyyyMMddHHmmss")
-$logFile = "./logging/$statusTime.log"
+$global:logFile = "./logging/$statusTime.log"
 
 # Ensure logging folder exists
 if (-not (Test-Path -Path "./logging"))
@@ -53,18 +53,18 @@ if (-not (Test-Path -Path "./logging"))
 # Make the helper functions available to script
 . "helpers/helper-functions.ps1"
 
-Write-Log "".PadRight(50, "=") -Path $logFile -WriteToHost
-Write-Log "run-provisioning.ps1" -Path $logFile -WriteToHost
-Write-Log "  params: ConfigFile:$($ConfigFile),SitesFile:$($SitesFile)" -Path $logFile -WriteToHost
-Write-Log "".PadRight(50, "=") -Path $logFile -WriteToHost
+Write-Log "".PadRight(50, "=") -WriteToHost
+Write-Log "run-provisioning.ps1" -WriteToHost
+Write-Log "  params: ConfigFile:$($ConfigFile),SitesFile:$($SitesFile)" -WriteToHost
+Write-Log "".PadRight(50, "=") -WriteToHost -WriteNewLine
 
 # Get configuration
 $config = Get-Content $ConfigFile | Out-String | ConvertFrom-Json
 
 # Write out configuration information
-Write-Log "Start Config Values ".PadRight(50, "*") -Path $logFile -WriteToHost
-Write-Log $config -Path $logFile -WriteToHost
-Write-Log "End Config Values ".PadRight(50, "*") -Path $logFile -WriteToHost
+Write-Log "Start Config Values ".PadRight(50, "*") -WriteToHost
+Write-Log $config -WriteToHost
+Write-Log "End Config Values ".PadRight(50, "*") -WriteToHost
 
 $global:cred = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
 $global:urls = @()
@@ -86,20 +86,20 @@ try
     # Check for an existing status file
     if ($false -ne $UseHistory)
     {
-        Write-Log "Checking for previous status file" -Path $logFile
+        Write-Log "Checking for previous status file"
         if ($StatusFile)
         {
             if (Test-Path -Path $StatusFile)
             {
-                Write-Log "Found status file '$StatusFile'" -Path $logFile
+                Write-Log "Found status file '$StatusFile'"
                 Import-Csv $StatusFile | % { $siteStatus[$_.SiteUrl] = [ProcessingStatus]$_.Status }
             }
             else
             {
-                Write-Log "Status file '$StatusFile' not found" -Path $logFile
+                Write-Log "Status file '$StatusFile' not found"
                 if (-not $PSCmdlet.ShouldContinue("Do you want to proceed without previous status?", "Status file '$StatusFile' not found.")) {
                     # User does not want to continue, end process
-                    Write-Log "User chose not to continue.  Ending process.d" -Path $logFile
+                    Write-Log "User chose not to continue.  Ending process."
                     exit
                 }
             }
@@ -120,23 +120,23 @@ try
                 $statusFile = "./status/$($statusFolder.Name)/status.csv"
                 if (Test-Path -Path $statusFile)
                 {
-                    Write-Log "Found status file '$statusFile'" -Path $logFile
+                    Write-Log "Found status file '$statusFile'"
                     Import-Csv $statusFile | % { $siteStatus[$_.SiteUrl] = [ProcessingStatus]$_.Status }
                 }
                 else
                 {
-                    Write-Log "Status file '$statusFile' not found" -Path $logFile
+                    Write-Log "Status file '$statusFile' not found"
 
                     if (-not $PSCmdlet.ShouldContinue("Do you want to proceed without previous status?", "Status file '$statusFile' not found")) {
                         # User does not want to continue, end process
-                        Write-Log "User chose not to continue.  Ending process.d" -Path $logFile
+                        Write-Log "User chose not to continue.  Ending process."
                         exit
                     }
                 }
             }
             else
             {
-                Write-Log "No history found.  Running script without previous status" -Path $logFile
+                Write-Log "No history found.  Running script without previous status"
             }
         }
     }
@@ -150,7 +150,7 @@ try
         if ($null -ne $nonTeamsItems -and $nonTeamsItems.Length -gt 0)
         {
             # If we have any sites to provision that are not MSTeam entities, connect to SharePoint
-            Write-Log "Connect-PnpOnline" -Path $logFile -WriteToHost
+            Write-Log "Connect-PnpOnline" -WriteToHost
             Connect-PnPOnline -Url $config.rootSiteUrl -Credentials $global:cred #-Scopes Group.ReadWrite.All
         }
 
@@ -158,7 +158,7 @@ try
         if ($null -ne $teamsItems -and $teamsItems.Length -gt 0)
         {
             # If we have any sites to provision that are MSTeam entities, connect to Teams
-            Write-Log "Connect-MicrosoftTeams" -Path $logFile -WriteToHost
+            Write-Log "Connect-MicrosoftTeams" -WriteToHost
             Connect-MicrosoftTeams -Credential $global:cred
         }
 
@@ -169,29 +169,40 @@ try
 
             try
             {
+                
+                if ($null -eq $siteStatus[$siteUrl])
+                {
+                    Write-Log "[$siteUrl] Did not find site in history file"
+                }
+                else
+                {
+                    Write-Log "[$siteUrl] Found site in history file.  Previous status was $($siteStatus[$siteUrl])"
+                }
+                
                 # If we have not run this site or if it previously failed during creation
                 if ($null -eq $siteStatus[$siteUrl] -or $siteStatus[$siteUrl] -lt [ProcessingStatus]::CreatingComplete)
                 {
 
                     $skipExisting = Get-NestedMember $config "skipExisting"
-
+                    $existingSite = $null
+                    
                     if ($skipExisting)
                     {
                         # Check if Site Already Exists
-                        Write-Log "[$siteUrl] Checking if site exists" -Path $logFile
+                        Write-Log "[$siteUrl] Checking if site exists"
                         $existingSite = Get-PnPTenantSite -Url $siteUrl -ErrorAction Ignore
                     }
                     
 
-                    if (-not $skipExisting -or $null -eq $existingSite)
+                    if (-not $skipExisting -or $null -eq $existingSite -or $null -ne $siteStatus[$siteUrl])
                     { 
 
                         # just doing this so we have an easy list of urls after we are done
                         $global:urls += $siteUrl
                         $siteStatus[$siteUrl] = [ProcessingStatus]::Creating
 
-                        Write-Log "[$siteUrl] Creating site" -Path $logFile -WriteToHost
-                        Write-Log "[$siteUrl] Previous status: '$($siteStatus[$siteUrl])'" -Path $logFile
+                        Write-Log "[$siteUrl] Creating site" -WriteToHost
+                        Write-Log "[$siteUrl] Current status: '$($siteStatus[$siteUrl])'" -WriteNewLine
 
                         $description = $line.Description
                         if($line.Description -eq "")
@@ -199,29 +210,29 @@ try
                             $description = $line.Title
                         }
 
-                        Write-Log "Start Invoke-Expression".PadRight(50, "*") -Path $logFile
-                        Write-Log ".\create-entity.ps1" -Path $logFile
-                        Write-Log "-ConfigFile '$($ConfigFile)'" -Path $logFile
-                        Write-Log "-Site '$($line.Site)'" -Path $logFile
-                        Write-Log "-SiteTitle '$($line.Title)'" -Path $logFile
-                        Write-Log "-SiteDescription '$($description)'" -Path $logFile
-                        Write-Log "-EntityType '$($line.EntityType)'" -Path $logFile
-                        Write-Log "-Visibility '$($line.Visibility)'" -Path $logFile
-                        Write-Log "-SkipGetCredentials -BatchMode" -Path $logFile
+                        Write-Log "Start Invoke-Expression".PadRight(50, "*")
+                        Write-Log ".\create-entity.ps1"
+                        Write-Log "-ConfigFile '$($ConfigFile)'"
+                        Write-Log "-Site '$($line.Site)'"
+                        Write-Log "-SiteTitle '$($line.Title)'"
+                        Write-Log "-SiteDescription '$($description)'"
+                        Write-Log "-EntityType '$($line.EntityType)'"
+                        Write-Log "-Visibility '$($line.Visibility)'"
+                        Write-Log "-SkipGetCredentials -BatchMode" -WriteNewLine
                         
                         Invoke-Expression ".\create-entity.ps1 -ConfigFile '$($ConfigFile)' -Site '$($line.Site)' -SiteTitle '$($line.Title)' -SiteDescription '$($description)' -EntityType '$($line.EntityType)' -Visibility '$($line.Visibility)' -SkipGetCredentials -BatchMode"
 
-                        Write-Log "[$siteUrl] Site creation complete" -Path $logFile -WriteToHost
+                        Write-Log "[$siteUrl] Site creation complete" -WriteToHost -WriteNewLine
 
                         $siteStatus[$siteUrl] = [ProcessingStatus]::CreatingComplete
 
 
-                        Write-Log "End Invoke-Expression".PadRight(50, "*") -Path $logFile
+                        Write-Log "End Invoke-Expression".PadRight(50, "*") -WriteNewLine
 
                     }
                     else 
                     {
-                        Write-Log "[$siteUrl] Site exists, will not be provisioned" -Path $logFile -WriteToHost
+                        Write-Log "[$siteUrl] Site exists, will not be provisioned" -WriteToHost -WriteNewLine
 
                         # Set status to skipped so we do not try to provision
                         $siteStatus[$siteUrl] = [ProcessingStatus]::Skipped
@@ -232,15 +243,15 @@ try
                 }
                 else
                 {
-                    Write-Log "[$siteUrl]: Previously created, skipping" -Path $logFile -WriteToHost
+                    Write-Log "[$siteUrl]: Previously created, skipping" -WriteToHost -WriteNewLine
                 }
             }
             catch
             {
                 $siteStatus[$siteUrl] = [ProcessingStatus]::ErrorCreating
-                Write-Log "[$siteUrl] An error occurred creating site" -Path $logFile -Level Error
-                Write-Log "[$siteUrl] $_" -Path $logFile -Level Error
-                Write-Log "[$siteUrl] $($_.ScriptStackTrace)" -Path $logFile -Level Error
+                Write-Log "[$siteUrl] An error occurred creating site" -Level Error
+                Write-Log "[$siteUrl] $_" -Level Error
+                Write-Log "[$siteUrl] $($_.ScriptStackTrace)" -Level Error -WriteNewLine
             }
         }
 
@@ -256,7 +267,7 @@ try
             {
                 if ($siteStatus[$siteUrl] -eq [ProcessingStatus]::Complete)
                 {
-                    Write-Log "[$siteUrl] Previously provisioned, skipping" -Path $logFile -WriteToHost
+                    Write-Log "[$siteUrl] Previously provisioned, skipping" -WriteToHost -WriteNewLine
 
                     $siteStatus[$siteUrl] = [ProcessingStatus]::Skipped
                     continue
@@ -267,22 +278,23 @@ try
                 {
                     $siteStatus[$siteUrl] = [ProcessingStatus]::Provisioning
 
-                    Write-Log "[$siteUrl] Provisioning site" -Path $logFile -WriteToHost
-                    Write-Log "[$siteUrl] Previous status: '$($siteStatus[$siteUrl])'" -Path $logFile
+                    Write-Log "[$siteUrl] Provisioning site" -WriteToHost
+                    Write-Log "[$siteUrl] Current status: '$($siteStatus[$siteUrl])'" -WriteNewLine
 
-                    Write-Log "Start Invoke-Expression".PadRight(50, "*") -Path $logFile
-                    Write-Log ".\provision-site.ps1" -Path $logFile
-                    Write-Log "-ConfigFile '$($ConfigFile)'" -Path $logFile
-                    Write-Log "-Site '$($line.Site)'" -Path $logFile
-                    Write-Log "-SiteTitle '$($line.Title)'" -Path $logFile
-                    Write-Log "-EntityType '$($line.EntityType)'" -Path $logFile
-                    Write-Log "-SkipGetCredentials -BatchMode" -Path $logFile
+                    Write-Log "Start Invoke-Expression".PadRight(50, "*")
+                    Write-Log ".\provision-site.ps1"
+                    Write-Log "-ConfigFile '$($ConfigFile)'"
+                    Write-Log "-Site '$($line.Site)'"
+                    Write-Log "-SiteTitle '$($line.Title)'"
+                    Write-Log "-EntityType '$($line.EntityType)'"
+                    Write-Log "-SkipGetCredentials -BatchMode" -WriteNewLine
 
                     Invoke-Expression ".\provision-site.ps1 -ConfigFile '$($ConfigFile)' -Site '$($line.Site)' -SiteTitle '$($line.Title)' -EntityType '$($line.EntityType)' -SkipGetCredentials -BatchMode"
 
-                    Write-Log "[$siteUrl] Site provisioning complete" -Path $logFile -WriteToHost
+                    Write-Log "[$siteUrl] Site provisioning complete" -WriteToHost -WriteNewLine
 
-                    Write-Log "End Invoke-Expression".PadRight(50, "*") -Path $logFile
+                    Write-Log "End Invoke-Expression".PadRight(50, "*") -WriteNewLine
+                    
 
                     $siteStatus[$siteUrl] = [ProcessingStatus]::Complete
                 }
@@ -290,16 +302,16 @@ try
                 {
                     if ($siteStatus[$siteUrl] -ne [ProcessingStatus]::ErrorCreating)
                     {
-                        Write-Log "[$siteUrl] Previously provisioned, skipping" -Path $logFile -WriteToHost
+                        Write-Log "[$siteUrl] Previously provisioned, skipping" -WriteToHost -WriteNewLine
                     }
                 }
             }
             catch
             {
                 $siteStatus[$siteUrl] = [ProcessingStatus]::ErrorProvisioning
-                Write-Log "[$siteUrl] An error occurred provisioning site" -Path $logFile -Level Error
-                Write-Log "[$siteUrl] $_" -Path $logFile -Level Error
-                Write-Log "[$siteUrl] $($_.ScriptStackTrace)" -Path $logFile -Level Error
+                Write-Log "[$siteUrl] An error occurred provisioning site" -Level Error
+                Write-Log "[$siteUrl] $_" -Level Error
+                Write-Log "[$siteUrl] $($_.ScriptStackTrace)" -Level Error -WriteNewLine
             }
         }
     }
@@ -316,6 +328,6 @@ finally
         @{N='Status';E={$_.Value}} |
             Export-Csv -NoTypeInformation -Path "./status/$statusTime/status.csv"
 
-    Write-Log "".PadRight(50, "=") -Path $logFile
-    Write-Log "Execution Time: [$(get-date)] [$($scriptTime.Elapsed.ToString())]" -Path $logFile
+    Write-Log "".PadRight(50, "=")
+    Write-Log "Execution Time: [$(get-date)] [$($scriptTime.Elapsed.ToString())]"
 }

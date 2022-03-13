@@ -67,7 +67,7 @@ BEGIN
     
     if($null -eq $webpartFiles)
     {
-        Write-Warning "No webparts found to deploy at $($PSCmdlet.ParameterSetName) scope. Exiting.";
+        Write-Log "No webparts found to deploy at $($PSCmdlet.ParameterSetName) scope. Exiting." -Level Warn
         exit
     }
 
@@ -112,18 +112,18 @@ PROCESS
         try
         {
             # Connect to the Tenant Admin site
-            Write-Host "$url - Connecting"
+            Write-Log "[$url] Connecting" -WriteToHost
             Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
         }
         catch
         {
-            Write-Error $_
+            Write-Log $_ -Level Error
             exit
         }
 
         foreach($file in $webpartFiles)
         {
-            Write-Host "$url - Uploading $($file.fileName)"
+            Write-Log "[$url] Uploading $($file.fileName)" -WriteToHost
             $app = Add-PnPApp -path "$($config.webparts.pathToFolder)/$($file.fileName)" -Scope Tenant -Overwrite -Publish -SkipFeatureDeployment
         }
     }
@@ -137,22 +137,22 @@ PROCESS
             try
             {
                 # Connect to the current Site
-                Write-Host "$url - Connecting"
+                Write-Log "[$url] Connecting" -WriteToHost
                 Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
             }
             catch
             {
-                Write-Error $_
+                Write-Log $_ -Level Error
                 exit
             }
 
-            Write-Host "$url - Preparing app catalog"
+            Write-Log "[$url] Preparing app catalog" -WriteToHost
             Add-PnPSiteCollectionAppCatalog -Site $url -ErrorAction SilentlyContinue
 
             # Upload app to app catalog
             foreach($file in $webpartFiles)
             {
-                Write-Host "$url - Uploading $($file.fileName)"
+                Write-Log "[$url] Uploading $($file.fileName)" -WriteToHost
                 $app = Add-PnPApp -path "$($config.webparts.pathToFolder)/$($file.fileName)" -Scope Site -Overwrite -Publish
 
                 # Install the app to the site.
@@ -161,11 +161,11 @@ PROCESS
                     $installedApp = Get-PnPApp -Identity $app -ErrorAction SilentlyContinue
                     if($installedApp)
                     {
-                        Write-Host "$url - $($file.fileName) already installed."
+                        Write-Log "[$url] $($file.fileName) already installed." -WriteToHost
                     }
                     else
                     {
-                        Write-Host "$url - Installing $($file.fileName)"
+                        Write-Log "[$url] Installing $($file.fileName)" -WriteToHost
                         Install-PnPApp -Identity $app -Scope Site
                     }
                 }
