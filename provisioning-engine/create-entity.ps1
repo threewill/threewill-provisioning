@@ -216,13 +216,6 @@ elseif ($EntityType -eq "IntranetSpokeSite")
     }
 }
 
-$webpartFiles = $config.webparts.files | Where-Object { $_.deployToTenant -eq $false }
-if($webpartFiles)
-{
-    Write-Log "[$siteUrl] Installing Webparts" -WriteToHost
-    . "./install-webpart.ps1" -SiteUrl $newSiteUrl -Credentials $global:cred -ConfigFile $ConfigFile
-}
-
 if ($disconnectWhenDone -eq $true)
 {
     # Disconnect from PnPOnline & SPOService

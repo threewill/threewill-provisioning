@@ -224,6 +224,14 @@ else
     }
 }
 
+
+$webpartFiles = $config.webparts.files | Where-Object { $_.deployToTenant -eq $false }
+if($webpartFiles)
+{
+    Write-Log "[$siteUrl] Installing Webparts" -WriteToHost
+    . "./install-webpart.ps1" -SiteUrl $newSiteUrl -Credentials $global:cred -ConfigFile $ConfigFile -SkipGetCredentials
+}
+
 # Make sure all open connections are closed
 Disconnect-OpenConnections
  

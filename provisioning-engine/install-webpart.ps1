@@ -55,7 +55,8 @@ PARAM(
 
     [Parameter(Mandatory=$false)]
     [string]
-    $UserName
+    $UserName,
+    [switch]$SkipGetCredentials
 )
 BEGIN
 {
@@ -109,6 +110,8 @@ PROCESS
     { 
         # We're just installing apps to the Tenant
         $url = $config.adminSiteUrl
+
+
         try
         {
             # Connect to the Tenant Admin site
@@ -134,16 +137,19 @@ PROCESS
         {
             $url = Update-SiteUrl $url
 
-            try
+            if ($SkipGetCredentials.IsPresent -eq $false)
             {
-                # Connect to the current Site
-                Write-Log "[$url] Connecting" -WriteToHost
-                Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
-            }
-            catch
-            {
-                Write-Log $_ -Level Error
-                exit
+                try
+                {
+                    # Connect to the current Site
+                    Write-Log "[$url] Connecting" -WriteToHost
+                    Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
+                }
+                catch
+                {
+                    Write-Log $_ -Level Error
+                    exit
+                }   
             }
 
             Write-Log "[$url] Preparing app catalog" -WriteToHost
