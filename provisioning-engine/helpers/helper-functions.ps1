@@ -111,13 +111,15 @@ function Write-Log
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$Message,
-        [Parameter(Mandatory=$true)]
-        [string]$Path,
+        [Parameter(Mandatory=$false)]
+        [string]$Path=$global:logFile,
         [Parameter(Mandatory=$false)]
         [ValidateSet("Error","Warn","Info","Debug")]
         [string]$Level="Info",
         [Parameter(Mandatory=$false)]
-        [switch]$WriteToHost
+        [switch]$WriteToHost,
+        [Parameter(Mandatory=$false)]
+        [switch]$WriteNewLine
     )
 
     # Create the file if it doesn't exist
@@ -151,8 +153,17 @@ function Write-Log
     # Write to log file
     "$formattedDate $($Level.ToUpper()): $Message" | Out-File -FilePath $Path -Append
 
+    if ($WriteNewLine)
+    {
+        "$formattedDate $($Level.ToUpper()):" | Out-File -FilePath $Path -Append
+    }
+
     if ($WriteToHost -and $Level -ne "Error")
     {
         Write-Host "$($Level.ToUpper()): $Message"
+        if ($WriteNewLine)
+        {
+            Write-Host ""
+        }
     }
 }

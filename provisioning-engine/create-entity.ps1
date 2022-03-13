@@ -45,11 +45,11 @@ Set-StrictMode -Version "3.0"
 # only write out stuff if we aren't being called by another script
 if ($BatchMode.IsPresent -eq $false)
 {
-    Write-Output "".PadRight(50, "=")
-    Write-Output "create-entity.ps1"
-    Write-Output "  params: Site:$($Site)"
-    Write-Output "  params: ConfigFile:$($ConfigFile),Site:$($Site),EntityType:$($EntityType)"
-    Write-Output "".PadRight(50, "=")
+    Write-Log "".PadRight(50, "=")
+    Write-Log "create-entity.ps1"
+    Write-Log "  params: Site:$($Site)"
+    Write-Log "  params: ConfigFile:$($ConfigFile),Site:$($Site),EntityType:$($EntityType)"
+    Write-Log "".PadRight(50, "=") -WriteNewLine
 }
 
 # Get configuration
@@ -58,24 +58,24 @@ $config = Get-Content $ConfigFile | Out-String | ConvertFrom-Json
 # only write out stuff if we aren't being called by another script
 if ($BatchMode.IsPresent -eq $false)
 {
-    Write-Output "Start Config Values ".PadRight(50, "*")
-    Write-Output $config
-    Write-Output "End Config Values ".PadRight(50, "*")
+    Write-Log "Start Config Values ".PadRight(50, "*")
+    Write-Log $config
+    Write-Log "End Config Values ".PadRight(50, "*") -WriteNewLine
 }
 
 $disconnectWhenDone = $true
 # this allows us to set $cred before executing script and not be prompted
 if ($SkipGetCredentials.IsPresent -eq $false)
 {
-    Write-Output "Prompt for SharePoint Credentials"
+    Write-Log "Prompt for SharePoint Credentials"
     $global:cred = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
 
     # Connect to SharePoint
-    Write-Output "Connect-PnpOnline"
+    Write-Log "Connect-PnpOnline"
     Connect-PnPOnline -Url $config.rootSiteUrl -Credentials $global:cred #-Scopes Group.ReadWrite.All
 
     # Connect to Teams
-    Write-Output "Connect-MicrosoftTeams"
+    Write-Log "Connect-MicrosoftTeams"
     Connect-MicrosoftTeams -Credential $global:cred
 }
 else
@@ -101,7 +101,7 @@ if ($EntityType -eq "CommunicationSite")
             #     
             # https://docs.microsoft.com/en-us/powershell/module/sharepoint-pnp/new-pnpsite?view=sharepoint-ps    
             #
-            Write-Output "New-PnPSite -Type CommunicationSite -Title $($SiteTitle) -Url $($siteUrl)"
+            Write-Log "New-PnPSite -Type CommunicationSite -Title $($SiteTitle) -Url $($siteUrl)"
             $newSiteUrl = New-PnPSite -Type CommunicationSite `
                 -Title $SiteTitle `
                 -Url $siteUrl `
@@ -111,7 +111,7 @@ if ($EntityType -eq "CommunicationSite")
         else 
         {
             # Site exists and not created
-            Write-Warning "Site already exists so it wasn't created. $($existingSite.Url)"
+            Write-Log "Site already exists so it wasn't created. $($existingSite.Url)" -Level Warn
             $newSiteUrl = $existingSite.Url
         
             Write-Output "$($existingSite.Url)" >> existingsites.log
@@ -126,7 +126,7 @@ elseif ($EntityType -eq "TeamSite")
         if ($null -eq $existingSite)
         {
             # if there is no provisioning script, create the new site
-            Write-Output "New-PnPSite -Type TeamSite -Title $($SiteTitle) -Alias $($Site) -Description $($SiteDescription)"
+            Write-Log "New-PnPSite -Type TeamSite -Title $($SiteTitle) -Alias $($Site) -Description $($SiteDescription)"
             $newSiteUrl = New-PnPSite -Type TeamSite `
                 -Title $SiteTitle `
                 -Alias $Site `
@@ -135,7 +135,7 @@ elseif ($EntityType -eq "TeamSite")
         else 
         {
             # Site exists and not created
-            Write-Warning "Site already exists so it wasn't created. $($existingSite.Url)"
+            Write-Log "Site already exists so it wasn't created. $($existingSite.Url)" -Level Warn
             $newSiteUrl = $existingSite.Url
         
             Write-Output "$($existingSite.Url)" >> existingsites.log
@@ -150,7 +150,7 @@ elseif ($EntityType -eq "TeamSiteWithoutM365Group")
         if ($null -eq $existingSite)
         {
             # if there is no provisioning script, create the new site
-            Write-Output "New-PnPSite -Type TeamSiteWithoutMicrosoft365Group -Title $($SiteTitle) -Url $($siteUrl) -Description $($SiteDescription)"
+            Write-Log "New-PnPSite -Type TeamSiteWithoutMicrosoft365Group -Title $($SiteTitle) -Url $($siteUrl) -Description $($SiteDescription)"
             $newSiteUrl = New-PnPSite -Type TeamSiteWithoutMicrosoft365Group `
                 -Title $SiteTitle `
                 -Url $siteUrl `
@@ -159,7 +159,7 @@ elseif ($EntityType -eq "TeamSiteWithoutM365Group")
         else 
         {
             # Site exists and not created
-            Write-Warning "Site already exists so it wasn't created. $($existingSite.Url)"
+            Write-Log "Site already exists so it wasn't created. $($existingSite.Url)" -Level Warn
             $newSiteUrl = $existingSite.Url
         
             Write-Output "$($existingSite.Url)" >> existingsites.log
@@ -173,7 +173,7 @@ elseif ($EntityType -eq "MSTeam")
     {
         if ($null -eq $existingSite)
         {
-            Write-Output "New-Team -MailNickName $($Site) -DisplayName $($SiteTitle) -Description $($SiteDescription) -Visibility $($Visibility)"
+            Write-Log "New-Team -MailNickName $($Site) -DisplayName $($SiteTitle) -Description $($SiteDescription) -Visibility $($Visibility)"
             # The MailNickName should be the URL
             $newSiteUrl = New-Team -MailNickName $Site `
                 -DisplayName $SiteTitle `
@@ -183,7 +183,7 @@ elseif ($EntityType -eq "MSTeam")
         else 
         {
             # Site exists and not created
-            Write-Warning "Team already exists so it wasn't created. $($existingSite.Url)"
+            Write-Log "Team already exists so it wasn't created. $($existingSite.Url)" -Level Warn
             $newSiteUrl = $existingSite.Url
         
             Write-Output "$($existingSite.Url)" >> existingsites.log
@@ -198,6 +198,7 @@ elseif ($EntityType -eq "IntranetSpokeSite")
         if ($null -eq $existingSite)
         {
             # if there is no provisioning script, create the new site
+            Write-Log "New-PnPSite -Type CommunicationSite -Title $SiteTitle -Url $siteUrl -Description $SiteDescription -SiteDesign Topic"
             $newSiteUrl = New-PnPSite -Type CommunicationSite `
                 -Title $SiteTitle `
                 -Url $siteUrl `
@@ -207,7 +208,7 @@ elseif ($EntityType -eq "IntranetSpokeSite")
         else 
         {
             # Site exists and not created
-            Write-Warning "Site already exists so it wasn't created. $($existingSite.Url)"
+            Write-Log "Site already exists so it wasn't created. $($existingSite.Url)" -Level Warn
             $newSiteUrl = $existingSite.Url
         
             Write-Output "$($existingSite.Url)" >> existingsites.log
@@ -218,13 +219,13 @@ elseif ($EntityType -eq "IntranetSpokeSite")
 $webpartFiles = $config.webparts.files | Where-Object { $_.deployToTenant -eq $false }
 if($webpartFiles)
 {
-    Write-Host "Installing Webparts"
+    Write-Log "[$siteUrl] Installing Webparts" -WriteToHost
     . "./install-webpart.ps1" -SiteUrl $newSiteUrl -Credentials $global:cred -ConfigFile $ConfigFile
 }
 
 if ($disconnectWhenDone -eq $true)
 {
     # Disconnect from PnPOnline & SPOService
-    Write-Output "Disconnect from SharePoint"
+    Write-Log "Disconnect from SharePoint" -WriteToHost
     Disconnect-PnPOnline
 }
