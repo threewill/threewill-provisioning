@@ -1,0 +1,199 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "title": "ThreeWill Provisioning Engine Template Extraction Configuration",
+  "version": "202202",
+  "description": "Defines the configuration to use when extracting a template from a site",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["adminSiteUrl", "rootSiteUrl"],
+  "definitions": {
+    "siteUrl": {
+      "type": "string",
+      "description": "A value in the shape of https://[yourtenant].sharepoint.com/sites/yoursite",
+      "pattern": "https:\/\/[a-zA-Z0-9]*.sharepoint\\.[a-zA-Z].*"
+    },
+    "adminSiteUrl": {
+      "type": "string",
+      "description": "A value in the shape of https://[yourtenant]-admin.sharepoint.com/sites/yoursite",
+      "pattern": "https://[a-zA-Z0-9]*-admin\\.sharepoint\\.[a-zA-Z].*"
+    },
+    "permissions": {
+      "description": "Defines any custom permissions setup necessary for an entity",
+      "type": "object",
+      "properties": {
+        "owners": {
+          "description": "Any default login names to be added to the site owners group",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "members": {
+          "description": "Any default login names to be added to the site members group",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "visitors": {
+          "description": "Any default login names to be added to the site visitors group",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "entityPlugin": {
+      "description": "Defines a plug-in to apply unique scripts for the specific entity type",
+      "type": "object",
+      "oneOf": [
+        {
+          "required": [
+            "provisioningTemplate"
+          ],
+          "not": {
+            "required": [
+              "provisioningScript"
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "provisioningTemplate",
+              "preProvisioningTask",
+              "postProvisioningTask"
+            ]
+          },
+          "required": [
+            "provisioningScript"
+          ]
+        }
+      ],
+      "properties": {
+        "preProvisioningTask": {
+          "description": "A path to a PowerShell script with pre-provisioning tasks",
+          "type": "string"
+        },
+        "provisioningTemplate": {
+          "description": "A path to a SharePoint Provisioning template (.xml)",
+          "type": "string"
+        },
+        "postProvisioningTask": {
+          "description": "A path to a PowerShell script with post-provisioning tasks",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provisioningScript": {
+          "description": "A path to a PowerShell script to create the site and provide site provisioning",
+          "type": "string"
+        },
+        "permissions": {
+          "$ref": "#/definitions/permissions"
+        }
+      }
+    }
+  },
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "description": "The version number.",
+      "type": "string",
+      "enum": ["1.0"]
+    },
+    "adminSiteUrl": {
+      "description": "The SharePoint tenant admin Url",
+      "type": "string",
+      "$ref": "#/definitions/adminSiteUrl"
+    },
+    "rootSiteUrl": {
+      "description": "The SharePoint tenant root Url",
+      "type": "string",
+      "$ref": "#/definitions/siteUrl"
+    },
+    "communicationSiteDefaultPath": {
+      "description": "The desired path for communication sites",
+      "type": "string",
+      "enum": ["sites", "teams"]
+    },
+    "teamSiteDefaultPath": {
+      "description": "The desired path for team sites",
+      "type": "string",
+      "enum": ["sites", "teams"]
+    },
+    "intranetSpokeSiteDefaultPath": {
+      "description": "The desired path for intranet spoke sites",
+      "type": "string",
+      "enum": ["sites", "teams"]
+    },
+    "skipExisting": {
+      "description": "Defines whether the script will skip existing sites or continue with provisioning",
+      "type": "boolean"
+    },
+    "plugins": {
+      "description": "Plug-ins that allow for taking appropriate action for a given entity type",
+      "type": "object",
+      "properties": {
+        "intranetSpokeSiteProvisioning": {
+          "$ref": "#/definitions/entityPlugin"
+        },
+        "communicationSiteProvisioning": {
+          "$ref": "#/definitions/entityPlugin"
+        },
+        "teamSiteProvisioning": {
+          "$ref": "#/definitions/entityPlugin"
+        },
+        "teamSiteWithoutM365GroupProvisioning": {
+          "$ref": "#/definitions/entityPlugin"
+        },
+        "msTeamsProvisioning": {
+          "description": "Defines a plug-in to apply unique scripts for the MS Teams entity type",
+          "type": "object",
+          "postProvisioningTask": {
+            "description": "A path to a PowerShell script with post-provisioning tasks",
+            "type": "string"
+          },
+          "provisioningScript": {
+            "description": "A path to a PowerShell script to create the site and provide site provisioning",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "webparts": {
+      "description": "The details of the web parts to deploy as part of provisioning",
+      "properties": {
+        "pathToFolder": {
+          "description": "The path to the folder that holds the web part files to be deployed",
+          "type": "string"
+        },
+        "files": {
+          "description": "An array of web parts to be deployed during provisioning",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fileName": {
+                "description": "The name of the web part package to deploy",
+                "type": "string"
+              },
+              "deployToTenant": {
+                "description": "Determines whether the web part should be deployed at the tenant scope rather than the site scope",
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "environmentVariables": {
+      "description": "Other variables, specific to the environment that can be accessed by custom scripts",
+      "type": "array"
+    }
+  }
+}

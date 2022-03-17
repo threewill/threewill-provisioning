@@ -8,7 +8,7 @@
 
     Deploying to the site level requires the Site Admin permission and will make the webpart available only for the specified sites. 
 
-    .PARAMETER configFile
+    .PARAMETER ConfigFile
     REQUIRED. Relative path the JSON configuration file to be used.
 
     .PARAMETER SiteURL
@@ -24,16 +24,16 @@
 
     .EXAMPLE
     Deploy all tenant scoped apps to the tenant using the specified credentials object.
-        ./create-site-batch.ps1 -configFile './config/willdev.json' -Credentials $myCredentials
+        ./create-site-batch.ps1 -ConfigFile './config/willdev.json' -Credentials $myCredentials
     
     Deploy all site scoped apps to the specified site. Will prompt user for credentials.
-        ./create-site-batch.ps1 -configFile './config/willdev.json' -SiteUrl 'https://contoso.sharepoint.com/sites/test-site'
+        ./create-site-batch.ps1 -ConfigFile './config/willdev.json' -SiteUrl 'https://contoso.sharepoint.com/sites/test-site'
 
     Deploy all site scoped apps to multiple sites using the specified credentials.
-        ./create-site-batch.ps1 -configFile './config/willdev.json' -SiteUrl '/sites/test-site-1', '/sites/test-site-2' -Credentials $myCredentials
+        ./create-site-batch.ps1 -ConfigFile './config/willdev.json' -SiteUrl '/sites/test-site-1', '/sites/test-site-2' -Credentials $myCredentials
 
     Deploy all site scoped apps to multiple sites piped in using the specified credentials.
-        '/sites/test-site-1', '/sites/test-site-2' | ./create-site-batch.ps1 -configFile './config/willdev.json' -Credentials $myCredentials
+        '/sites/test-site-1', '/sites/test-site-2' | ./create-site-batch.ps1 -ConfigFile './config/willdev.json' -Credentials $myCredentials
 
     .NOTES
     - Dependencies: 
@@ -55,26 +55,32 @@ PARAM(
 
     [Parameter(Mandatory=$false)]
     [string]
-    $UserName
+    $UserName,
+    [switch]$SkipGetCredentials
 )
-BEGIN{
+BEGIN
+{
     $isTenantScoped = $PSCmdlet.ParameterSetName -eq "TENANT"
 
     # Load and validate config file
     $config = Get-Content $configFile | Out-String | ConvertFrom-Json
     $webpartFiles = $config.webparts.files | Where-Object { $_.deployToTenant -eq $isTenantScoped }
     
-    if($null -eq $webpartFiles){
-        Write-Warning "No webparts found to deploy at $($PSCmdlet.ParameterSetName) scope. Exiting.";
+    if($null -eq $webpartFiles)
+    {
+        Write-Log "No webparts found to deploy at $($PSCmdlet.ParameterSetName) scope. Exiting." -Level Warn
         exit
     }
 
     # Get Credentials
-    if($null -eq $Credentials ){
-        if([String]::IsNullOrEmpty($UserName)){
+    if($null -eq $Credentials )
+    {
+        if([String]::IsNullOrEmpty($UserName))
+        {
             $credentials = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
         }
-        else{
+        else
+        {
             $credentials = Get-Credential -UserName $UserName -Message "Please provide the password for $UserName"
         }
     }
@@ -84,65 +90,88 @@ BEGIN{
             [Parameter(Mandatory=$true)]
             [string]$url
         )
-        if($url -match "^\/?(?:sites|teams)\/\w+$"){
-            if($url.startsWith('/')){
+        if($url -match "^\/?(?:sites|teams)\/\w+$")
+        {
+            if($url.startsWith('/'))
+            {
                 $url = $config.rootSiteUrl + $url;
             }
-            else{
+            else
+            {
                 $url = $config.rootSiteUrl + '/' + $url;
             }
         }
         return $url
     }
 }
-PROCESS{
-    if($isTenantScoped){ # We're just installing apps to the Tenant
+PROCESS
+{
+    if($isTenantScoped)
+    { 
+        # We're just installing apps to the Tenant
         $url = $config.adminSiteUrl
-        try{
+
+
+        try
+        {
             # Connect to the Tenant Admin site
-            Write-Host "$url - Connecting"
+            Write-Log "[$url] Connecting" -WriteToHost
             Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
         }
-        catch{
-            Write-Error $_
+        catch
+        {
+            Write-Log $_ -Level Error
             exit
         }
 
-        foreach($file in $webpartFiles){
-            Write-Host "$url - Uploading $($file.fileName)"
+        foreach($file in $webpartFiles)
+        {
+            Write-Log "[$url] Uploading $($file.fileName)" -WriteToHost
             $app = Add-PnPApp -path "$($config.webparts.pathToFolder)/$($file.fileName)" -Scope Tenant -Overwrite -Publish -SkipFeatureDeployment
         }
     }
-    else{ # We're only installing site scoped webparts            
-        foreach($url in $SiteUrl){
+    else
+    {
+        # We're only installing site scoped webparts            
+        foreach($url in $SiteUrl)
+        {
             $url = Update-SiteUrl $url
 
-            try{
-                # Connect to the current Site
-                Write-Host "$url - Connecting"
-                Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
-            }
-            catch{
-                Write-Error $_
-                exit
+            if ($SkipGetCredentials.IsPresent -eq $false)
+            {
+                try
+                {
+                    # Connect to the current Site
+                    Write-Log "[$url] Connecting" -WriteToHost
+                    Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
+                }
+                catch
+                {
+                    Write-Log $_ -Level Error
+                    exit
+                }   
             }
 
-            Write-Host "$url - Preparing app catalog"
+            Write-Log "[$url] Preparing app catalog" -WriteToHost
             Add-PnPSiteCollectionAppCatalog -Site $url -ErrorAction SilentlyContinue
 
             # Upload app to app catalog
-            foreach($file in $webpartFiles){
-                Write-Host "$url - Uploading $($file.fileName)"
+            foreach($file in $webpartFiles)
+            {
+                Write-Log "[$url] Uploading $($file.fileName)" -WriteToHost
                 $app = Add-PnPApp -path "$($config.webparts.pathToFolder)/$($file.fileName)" -Scope Site -Overwrite -Publish
 
                 # Install the app to the site.
-                if($null -ne $app){
+                if($null -ne $app)
+                {
                     $installedApp = Get-PnPApp -Identity $app -ErrorAction SilentlyContinue
-                    if($installedApp){
-                        Write-Host "$url - $($file.fileName) already installed."
+                    if($installedApp)
+                    {
+                        Write-Log "[$url] $($file.fileName) already installed." -WriteToHost
                     }
-                    else{
-                        Write-Host "$url - Installing $($file.fileName)"
+                    else
+                    {
+                        Write-Log "[$url] Installing $($file.fileName)" -WriteToHost
                         Install-PnPApp -Identity $app -Scope Site
                     }
                 }
@@ -151,6 +180,7 @@ PROCESS{
         }
     }
 }
-END{
+END
+{
     
 }

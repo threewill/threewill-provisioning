@@ -1,0 +1,12 @@
+PlaceID,Site,Title,Description,EntityType,SiteType,IsHub,AssociateToHub,Visibility
+# Valid EntityTypes used when Creating Sites = CommunicationSite;TeamSite;TeamSiteWithoutM365Group;MSTeam;IntranetSpokeSite,,,,,
+# IsHub & AssociateToHub are only used by the create / associate hubs script,,,,,
+# MSTeam Type Notes
+#     When creating an MSTeam use Site for SharePoint Url to validate but Title for the Team Name.  
+#     SharePoint Url *should* be Team Name with no spaces,,,,,
+#     Visibility is only used for MSTeam
+9999,test-spoke-1,"Test Spoke 1",,IntranetSpokeSite,,FALSE,,
+9999,test-team-1,"Test Team 1",,TeamSite,,FALSE,,
+9999,test-team-no-group-1,"Test Team No Group 1",,TeamSiteWithoutM365Group,,FALSE,,
+9999,test-comm-1,"Test Comm 1","Some Description",CommunicationSite,,FALSE,,
+

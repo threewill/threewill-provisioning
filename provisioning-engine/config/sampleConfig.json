@@ -1,0 +1,31 @@
+{
+    "$schema": "./provisioning-config-schema.json",
+    "adminSiteUrl":  "https://[yourtenant]-admin.sharepoint.com",
+    "rootSiteUrl":  "https://[yourtenant].sharepoint.com",
+    "communicationSiteDefaultPath": "sites",
+    "teamSiteDefaultPath": "sites",
+    "skipExisting": true,
+    "plugins": {
+        "intranetSpokeSiteProvisioning": {
+            "provisioningScript": "templates/provision-intranet-spoke-site.ps1"
+        },
+        "teamSiteProvisioning": {
+            "provisioningTemplate": "templates/...xml",
+            "postProvisioningTask": ""
+        }
+    },
+    "webparts": {
+        "pathToFolder": "../../webparts",
+        "files": [
+            {
+                "fileName": "archived-comments.sppkg",
+                "deployToTenant": true
+            },
+            {
+                "fileName": "enhancedtext-webpart.sppkg",
+                "deployToTenant": true
+            }
+        ]
+    }
+}
+ 
