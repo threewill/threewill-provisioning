@@ -27,7 +27,7 @@ jobs:
 
       # Archives everything in the provisioning engine folder
       - name: Archive Release
-        uses: thedoctor0/zip-release@main
+        uses: thedoctor0/zip-release@master
         with:
           path: ./provisioning-engine
           type: 'zip'
