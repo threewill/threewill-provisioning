@@ -287,9 +287,10 @@ try
                     Write-Log "-Site '$($line.Site)'"
                     Write-Log "-SiteTitle '$($line.Title)'"
                     Write-Log "-EntityType '$($line.EntityType)'"
+                    Write-Log "-SiteType '$($line.SiteType)'"
                     Write-Log "-SkipGetCredentials -BatchMode" -WriteNewLine
 
-                    Invoke-Expression ".\provision-site.ps1 -ConfigFile '$($ConfigFile)' -Site '$($line.Site)' -SiteTitle '$($line.Title)' -EntityType '$($line.EntityType)' -SkipGetCredentials -BatchMode"
+                    Invoke-Expression ".\provision-site.ps1 -ConfigFile '$($ConfigFile)' -Site '$($line.Site)' -SiteTitle '$($line.Title)' -EntityType '$($line.EntityType)' -SiteType '$($line.SiteType)' -SkipGetCredentials -BatchMode"
 
                     Write-Log "[$siteUrl] Site provisioning complete" -WriteToHost -WriteNewLine
 

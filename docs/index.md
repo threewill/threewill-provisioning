@@ -43,9 +43,10 @@ param(
     [Parameter(Mandatory = $true)]  
     [string]$SitePath,  
     [Parameter(Mandatory = $true)]  
-    [string]$SiteTitle  
+    [string]$SiteTitle,  
     [Parameter(Mandatory = $true)]  
-    [string]$ConfigFile  
+    [string]$ConfigFile,
+    [string]$SiteType  
 )
 ```
 
@@ -94,4 +95,7 @@ The provisioning engine keeps historical records of previous runs and outcomes. 
 
 ## Example call
 
-``.\run-provisioning.ps1 -ConfigFile ".\config\devConfig.json" -SitesFile ".\config\default-batch.csv" [-UseHistory]``
+```powershell
+cd provisioning-engine
+.\run-provisioning.ps1 -ConfigFile ".\config\devConfig.json" -SitesFile ".\config\default-batch.csv" [-UseHistory]
+```

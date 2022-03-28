@@ -7,7 +7,7 @@
     "skipExisting": true,
     "plugins": {
         "intranetSpokeSiteProvisioning": {
-            "provisioningScript": "templates/provision-intranet-spoke-site.ps1"
+            "provisioningScript": "plugins/simple-provisioning.ps1"
         },
         "teamSiteProvisioning": {
             "provisioningTemplate": "templates/...xml",
