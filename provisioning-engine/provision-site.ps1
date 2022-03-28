@@ -31,7 +31,8 @@ param(
     [ValidateSet("IntranetSpokeSite", "CommunicationSite", "TeamSite", "TeamSiteWithoutM365Group", "MSTeam")]    
     [string]$EntityType,
     [switch]$SkipGetCredentials,
-    [switch]$BatchMode
+    [switch]$BatchMode,
+    [string]$SiteType
 )
 
 # Make the helper functions available to script
@@ -106,7 +107,7 @@ $provisioningScript = Get-NestedMember $config "plugins.$entityTypeConfigKey.pro
 if ($null -ne $provisioningScript)
 {
     # Apply provisioning script if we have it
-    . $provisioningScript -TenantUrl $config.rootSiteUrl -SitePath $Site -SiteTitle $SiteTitle -FullSiteUrl $siteUrl
+    . $provisioningScript -TenantUrl $config.rootSiteUrl -SitePath $Site -SiteTitle $SiteTitle -FullSiteUrl $siteUrl -SiteType $SiteType -ConfigFile $ConfigFile
 }
 else 
 { 
@@ -132,7 +133,7 @@ else
             Write-Log "[$siteUrl] Running pre-provisioning script '$preProvisioningScript'" -WriteToHost
 
             # Run the pre-provisioning script, if there is one
-            . $preProvisioningScript -TenantUrl $config.rootSiteUrl -SitePath $Site -SiteTitle $SiteTitle -FullSiteUrl $siteUrl -ConfigFile $ConfigFile
+            . $preProvisioningScript -TenantUrl $config.rootSiteUrl -SitePath $Site -SiteTitle $SiteTitle -FullSiteUrl $siteUrl -ConfigFile $ConfigFile -SiteType $SiteType
         }
         else
         {
@@ -174,7 +175,7 @@ else
                 Write-Log "[$siteUrl] Running post-provisioning script '$postProvisioningScript'" -WriteToHost
 
                 # Run the post-provisioning script, if there is one
-                . $postProvisioningScript -TenantUrl $config.rootSiteUrl -SitePath $Site -SiteTitle $SiteTitle -FullSiteUrl $siteUrl -ConfigFile $ConfigFile
+                . $postProvisioningScript -TenantUrl $config.rootSiteUrl -SitePath $Site -SiteTitle $SiteTitle -FullSiteUrl $siteUrl -ConfigFile $ConfigFile -SiteType $SiteType
             }
             else
             {
