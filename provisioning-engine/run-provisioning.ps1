@@ -67,6 +67,7 @@ Write-Log $config -WriteToHost
 Write-Log "End Config Values ".PadRight(50, "*") -WriteToHost
 
 $global:cred = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
+$global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
 $global:urls = @()
 
 enum ProcessingStatus {
@@ -145,13 +146,13 @@ try
     if ($null -ne $global:cred)
     {
         $sitesData = Import-CSV (Join-Path $script:PSScriptRoot $SitesFile) | Where { -not $_.PlaceID.StartsWith("#") }
-        
+       
         $nonTeamsItems = $sitesData | Where { $_.EntityType -ne "MSTeam" }
         if ($null -ne $nonTeamsItems -and $nonTeamsItems.Length -gt 0)
         {
             # If we have any sites to provision that are not MSTeam entities, connect to SharePoint
             Write-Log "Connect-PnpOnline" -WriteToHost
-            Connect-PnPOnline -Url $config.rootSiteUrl -Credentials $global:cred #-Scopes Group.ReadWrite.All
+            #Connect-PnPOnline -Url $config.rootSiteUrl -Credentials $global:cred #-Scopes Group.ReadWrite.All
         }
 
         $teamsItems = $sitesData | Where { $_.EntityType -eq "MSTeam" }
@@ -180,6 +181,7 @@ try
                 }
                 
                 # If we have not run this site or if it previously failed during creation
+				Write-Log "$siteStatus[$siteUrl] [ProcessingStatus]  Checking if site exists"
                 if ($null -eq $siteStatus[$siteUrl] -or $siteStatus[$siteUrl] -lt [ProcessingStatus]::CreatingComplete)
                 {
 
@@ -256,7 +258,7 @@ try
         }
 
         # Close any open connections before moving to the next step
-        Disconnect-OpenConnections
+        #Disconnect-OpenConnections
 
         # Loop through list to apply provisioning to sites 
         foreach ($line in $sitesData)
@@ -314,6 +316,7 @@ try
                 Write-Log "[$siteUrl] $_" -Level Error
                 Write-Log "[$siteUrl] $($_.ScriptStackTrace)" -Level Error -WriteNewLine
             }
+            
         }
     }
 

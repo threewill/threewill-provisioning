@@ -78,10 +78,12 @@ BEGIN
         if([String]::IsNullOrEmpty($UserName))
         {
             $credentials = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
+			$global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
         }
         else
         {
             $credentials = Get-Credential -UserName $UserName -Message "Please provide the password for $UserName"
+			$global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
         }
     }
 
@@ -116,7 +118,7 @@ PROCESS
         {
             # Connect to the Tenant Admin site
             Write-Log "[$url] Connecting" -WriteToHost
-            Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
+            #Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
         }
         catch
         {
@@ -127,7 +129,7 @@ PROCESS
         foreach($file in $webpartFiles)
         {
             Write-Log "[$url] Uploading $($file.fileName)" -WriteToHost
-            $app = Add-PnPApp -path "$($config.webparts.pathToFolder)/$($file.fileName)" -Scope Tenant -Overwrite -Publish -SkipFeatureDeployment
+            $app = Add-PnPApp -path "$($config.webparts.pathToFolder)/$($file.fileName)" -Connection $global:tenantConn -Scope Tenant -Overwrite -Publish -SkipFeatureDeployment
         }
     }
     else
@@ -143,7 +145,7 @@ PROCESS
                 {
                     # Connect to the current Site
                     Write-Log "[$url] Connecting" -WriteToHost
-                    Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
+                    #Connect-PnPOnline -Url $url -Credentials $credentials -ErrorAction Stop
                 }
                 catch
                 {
@@ -153,18 +155,18 @@ PROCESS
             }
 
             Write-Log "[$url] Preparing app catalog" -WriteToHost
-            Add-PnPSiteCollectionAppCatalog -Site $url -ErrorAction SilentlyContinue
+            Add-PnPSiteCollectionAppCatalog -Site $url -ErrorAction SilentlyContinue -Connection $global:tenantConn
 
             # Upload app to app catalog
             foreach($file in $webpartFiles)
             {
                 Write-Log "[$url] Uploading $($file.fileName)" -WriteToHost
-                $app = Add-PnPApp -path "$($config.webparts.pathToFolder)/$($file.fileName)" -Scope Site -Overwrite -Publish
+                $app = Add-PnPApp -path "$($config.webparts.pathToFolder)/$($file.fileName)" -Scope Site -Overwrite -Publish -Connection $global:tenantConn
 
                 # Install the app to the site.
                 if($null -ne $app)
                 {
-                    $installedApp = Get-PnPApp -Identity $app -ErrorAction SilentlyContinue
+                    $installedApp = Get-PnPApp -Identity $app -ErrorAction SilentlyContinue -Connection $global:tenantConn
                     if($installedApp)
                     {
                         Write-Log "[$url] $($file.fileName) already installed." -WriteToHost
@@ -172,11 +174,11 @@ PROCESS
                     else
                     {
                         Write-Log "[$url] Installing $($file.fileName)" -WriteToHost
-                        Install-PnPApp -Identity $app -Scope Site
+                        Install-PnPApp -Identity $app -Scope Site -Connection $global:tenantConn
                     }
                 }
             }
-            Disconnect-PnPOnline
+            #Disconnect-PnPOnline
         }
     }
 }

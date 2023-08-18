@@ -67,15 +67,17 @@ if ($SkipGetCredentials.IsPresent -eq $false)
 {
     Write-Log "Prompt for SharePoint Credentials"
     $global:cred = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
+	global:siteConn = Connect-PnPOnline -Url $siteUrl -Interactive -ReturnConnection -ErrorAction Stop
 }
 
 $siteUrl = Get-UrlByEntityType $EntityType $Site $config
+$global:siteConn = Connect-PnPOnline -Url $siteUrl -Interactive -ReturnConnection -ErrorAction Stop
 
 # only check if the site exists if we are not called from another script
 # otherwise assume the parent script has verified the site exists
 if ($BatchMode.IsPresent -eq $false)
 {
-    Connect-PnPOnline -Url $config.rootSiteUrl -Credentials $global:cred
+    #Connect-PnPOnline -Url $config.rootSiteUrl -Credentials $global:cred
 
     try
     {
@@ -90,7 +92,7 @@ if ($BatchMode.IsPresent -eq $false)
     }
     finally
     {
-        Disconnect-PnPOnline
+        #Disconnect-PnPOnline
     }
 }
 
@@ -115,7 +117,7 @@ else
     if ($EntityType -ne "MSTeam")
     {
         Write-Log "[$siteUrl] Connect-PnpOnline" -WriteToHost
-        Connect-PnPOnline -Url $siteUrl -Credentials $global:cred
+        #Connect-PnPOnline -Url $siteUrl -Credentials $global:cred
     }
     else
     {
@@ -154,7 +156,7 @@ else
                 Write-Log "[$siteUrl] Inovking PnP template '$provisioningTemplate'" -WriteToHost
 
                 # Invoke the provisioning template, if there is one
-                Invoke-PnPSiteTemplate -Path $provisioningTemplate
+                Invoke-PnPSiteTemplate -Path $provisioningTemplate -Connectiion $global:siteConn
             }
             else
             {
@@ -190,14 +192,14 @@ else
         $permissions = Get-NestedMember $config "plugins.$entityTypeConfigKey.permissions"
         if ($null -ne $permissions)
         {
-            $connection = Connect-PnPOnline -Url $siteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
+            #$connection = Connect-PnPOnline -Url $siteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
 
             $owners = $permissions.owners
             if ($null -ne $owners)
             {
-                $ownerGroup = Get-PnPGroup -AssociatedOwnerGroup
+                $ownerGroup = Get-PnPGroup -AssociatedOwnerGroup -Connection $global:siteConn
                 foreach ($o in $owners) {
-                    Add-PnPGroupMember -EmailAddress $o -Group $ownerGroup.Id -Connection $connection
+                    Add-PnPGroupMember -EmailAddress $o -Group $ownerGroup.Id -Connection $global:siteConn
                     Write-Log "[$siteUrl] $o added to Site Owners" -WriteToHost
                 }
             }
@@ -205,9 +207,9 @@ else
             $members = $permissions.members
             if ($null -ne $members)
             {
-                $memberGroup = Get-PnPGroup -AssociatedMemberGroup
+                $memberGroup = Get-PnPGroup -AssociatedMemberGroup -Connection $global:siteConn
                 foreach ($m in $members) {
-                    Add-PnPGroupMember -EmailAddress $m -Group $memberGroup.Id -Connection $connection
+                    Add-PnPGroupMember -EmailAddress $m -Group $memberGroup.Id -Connection $global:siteConn
                     Write-Log "[$siteUrl] $m added to Site Members" -WriteToHost
                 }
             }
@@ -215,9 +217,9 @@ else
             $visitors = $permissions.visitors
             if ($null -ne $visitors)
             {
-                $visitorGroup = Get-PnPGroup -AssociatedVisitorGroup
+                $visitorGroup = Get-PnPGroup -AssociatedVisitorGroup -Connection $global:siteConn
                 foreach ($v in $visitors) {
-                    Add-PnPGroupMember -EmailAddress $v -Group $visitorGroup.Id -Connection $connection
+                    Add-PnPGroupMember -EmailAddress $v -Group $visitorGroup.Id -Connection $global:siteConn
                     Write-Log "[$siteUrl] $v added to Site Visitors" -WriteToHost
                 }
             }
@@ -234,5 +236,5 @@ if($webpartFiles)
 }
 
 # Make sure all open connections are closed
-Disconnect-OpenConnections
+#Disconnect-OpenConnections
  

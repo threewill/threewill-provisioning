@@ -95,7 +95,7 @@ function Disconnect-OpenConnections
 {
     try
     {
-        Disconnect-PnPOnline
+        #Disconnect-PnPOnline
     }
     catch
     {

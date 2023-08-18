@@ -37,7 +37,7 @@ foreach ($var in $variables) {
 Write-Log "Provisioning called (intranet): Tenant Url $TenantUrl | SitePath $SitePath | SiteTitle $SiteTitle | FullSiteUrl $FullSiteUrl"
 
 # Connect to target site
-$connection = Connect-PnPOnline -Url $FullSiteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
+#$connection = Connect-PnPOnline -Url $FullSiteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
 
 Write-Log "[$FullSiteUrl] Invoking PnP template... $PSScriptRoot/site-template.xml" -WriteToHost
 # Ensure the template file exists
@@ -48,15 +48,15 @@ if (Test-Path -Path "$PSScriptRoot/$SpokeSiteTemplate")
   # See discussion here: https://github.com/pnp/PnP-PowerShell/issues/1180#issuecomment-583447230
 
   # Invoke only the fields
-  Invoke-PnPSiteTemplate -Path "$PSScriptRoot/$SpokeSiteTemplate" -Connection $connection -Handlers Fields
+  Invoke-PnPSiteTemplate -Path "$PSScriptRoot/$SpokeSiteTemplate" -Connection $global:siteConn -Handlers Fields
 
   # Ensure that the Taxonomy feature is enabled
-  Enable-PnPFeature -Identity 73ef14b1-13a9-416b-a9b5-ececa2b0604c -Connection $connection -Scope Site
+  Enable-PnPFeature -Identity 73ef14b1-13a9-416b-a9b5-ececa2b0604c -Connection $global:siteConn -Scope Site
 
   # Wait for the taxonomy field to appear
   Write-Log "[$FullSiteUrl] Ensuring taxonomy is avaiable" -WriteToHost
   $timeElapsed = 0
-  $fieldExists =  Get-PnPField -Identity "TermStoreCategories" -Connection $connection -ErrorAction SilentlyContinue
+  $fieldExists =  Get-PnPField -Identity "TermStoreCategories" -Connection $global:siteConn -ErrorAction SilentlyContinue
   while($null -eq $fieldExists){
     # Exit after 5 minutes
     $timeElapsed += 5
@@ -68,12 +68,12 @@ if (Test-Path -Path "$PSScriptRoot/$SpokeSiteTemplate")
     Write-Log "[$fullSiteUrl] Waiting..." -WriteToHost
     Start-Sleep -Seconds 5
 
-    $fieldExists =  Get-PnPField -Identity "TermStoreCategories" -Connection $connection -ErrorAction SilentlyContinue
+    $fieldExists =  Get-PnPField -Identity "TermStoreCategories" -Connection $global:siteConn -ErrorAction SilentlyContinue
   }
   Write-Log "[$FullSiteUrl] Taxonomy field found" -WriteToHost
 
   # Invoke the remainder of the teamplate
-  Invoke-PnPSiteTemplate -Path "$PSScriptRoot/$SpokeSiteTemplate" -Connection $connection -ClearNavigation -ExcludeHandlers Fields
+  Invoke-PnPSiteTemplate -Path "$PSScriptRoot/$SpokeSiteTemplate" -Connection $global:siteConn -ClearNavigation -ExcludeHandlers Fields
 
 }
 else {
@@ -85,12 +85,12 @@ else {
 Write-Log "[$FullSiteUrl] Running post-provisioning tasks..." -WriteToHost
 Write-Log "[$FullSiteUrl] Customizing Contribute Permission Level and applying to Site Members" -WriteToHost
 # Update the contribute permission to remove delete permission
-$role = Set-PnPRoleDefinition -Identity "Contribute" -Clear DeleteListItems, DeleteVersions -Description "Can view, add, and update list items and documents." -Connection $connection
+$role = Set-PnPRoleDefinition -Identity "Contribute" -Clear DeleteListItems, DeleteVersions -Description "Can view, add, and update list items and documents." -Connection $global:siteConn
 try {
   # Update the members group to use the Contribute Role
   # This will throw an error if the script is run a second time
-  $memberGroup = Get-PnPGroup -AssociatedMemberGroup
-  $perm = Set-PnPGroupPermissions -Identity $memberGroup.Id -RemoveRole "Edit" -AddRole "Contribute" -Connection $connection
+  $memberGroup = Get-PnPGroup -AssociatedMemberGroup -Connection $global:siteConn
+  $perm = Set-PnPGroupPermissions -Identity $memberGroup.Id -RemoveRole "Edit" -AddRole "Contribute" -Connection $global:siteConn
 }
 catch {
   Write-Log "Could not update permissions for '$SiteTitle Members'" -WriteToHost
@@ -99,19 +99,19 @@ catch {
 
 ### Break inheritance on the Home page and make it so that Members only have Read permission level
 Write-Log "[$FullSiteUrl] Breaking Home page permissions and giving Members Read access" -WriteToHost
-$homePage = Get-PnPClientSidePage "Home.aspx"
-$homePageItem = Get-PnPListItem -List "Site Pages" -Id $homePage.PageId
+$homePage = Get-PnPClientSidePage "Home.aspx" -Connection $global:siteConn
+$homePageItem = Get-PnPListItem -List "Site Pages" -Id $homePage.PageId -Connection $global:siteConn
 $homePageItem.BreakRoleInheritance($True,$False)
 $homePageItem.Update()
-$memberGroup = Get-PnPGroup -AssociatedMemberGroup
-Set-PnPListItemPermission -List "Site Pages" -Identity $homePage.PageId -Group $memberGroup.Id -RemoveRole "Contribute"
-Set-PnPListItemPermission -List "Site Pages" -Identity $homePage.PageId -Group $memberGroup.Id -AddRole "Read"
+$memberGroup = Get-PnPGroup -AssociatedMemberGroup -Connection $global:siteConn
+Set-PnPListItemPermission -List "Site Pages" -Identity $homePage.PageId -Group $memberGroup.Id -RemoveRole "Contribute" -Connection $global:siteConn
+Set-PnPListItemPermission -List "Site Pages" -Identity $homePage.PageId -Group $memberGroup.Id -AddRole "Read" -Connection $global:siteConn
 
 #Associate the site to the Hub
 Write-Log "[$FullSiteUrl] Associating to Community Hub ($hub)" -WriteToHost
-Add-PnPHubSiteAssociation -Site $FullSiteUrl -HubSite "$hub" -Connection $connection
+Add-PnPHubSiteAssociation -Site $FullSiteUrl -HubSite "$hub" -Connection $global:siteConn
 
 Write-Log "[$FullSiteUrl] Intranet Provisioning plugin completed" -WriteToHost
 
 # Disconnect the site connection
-Disconnect-PnPOnline -Connection $connection
+#Disconnect-PnPOnline -Connection $connection
