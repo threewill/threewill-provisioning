@@ -72,7 +72,8 @@ if ($SkipGetCredentials.IsPresent -eq $false)
 
     # Connect to SharePoint
     Write-Log "Connect-PnpOnline"
-    Connect-PnPOnline -Url $config.rootSiteUrl -Credentials $global:cred #-Scopes Group.ReadWrite.All
+    #Connect-PnPOnline -Url $config.rootSiteUrl -Credentials $global:cred #-Scopes Group.ReadWrite.All
+	$global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
 
     # Connect to Teams
     Write-Log "Connect-MicrosoftTeams"
@@ -102,7 +103,7 @@ if ($EntityType -eq "CommunicationSite")
             # https://docs.microsoft.com/en-us/powershell/module/sharepoint-pnp/new-pnpsite?view=sharepoint-ps    
             #
             Write-Log "New-PnPSite -Type CommunicationSite -Title $($SiteTitle) -Url $($siteUrl)"
-            $newSiteUrl = New-PnPSite -Type CommunicationSite `
+            $newSiteUrl = New-PnPSite -Connection $global:tenantConn -Type CommunicationSite `
                 -Title $SiteTitle `
                 -Url $siteUrl `
                 -Description $SiteDescription `
@@ -127,7 +128,7 @@ elseif ($EntityType -eq "TeamSite")
         {
             # if there is no provisioning script, create the new site
             Write-Log "New-PnPSite -Type TeamSite -Title $($SiteTitle) -Alias $($Site) -Description $($SiteDescription)"
-            $newSiteUrl = New-PnPSite -Type TeamSite `
+            $newSiteUrl = New-PnPSite -Connection $global:tenantConn -Type TeamSite `
                 -Title $SiteTitle `
                 -Alias $Site `
                 -Description $SiteDescription
@@ -151,7 +152,7 @@ elseif ($EntityType -eq "TeamSiteWithoutM365Group")
         {
             # if there is no provisioning script, create the new site
             Write-Log "New-PnPSite -Type TeamSiteWithoutMicrosoft365Group -Title $($SiteTitle) -Url $($siteUrl) -Description $($SiteDescription)"
-            $newSiteUrl = New-PnPSite -Type TeamSiteWithoutMicrosoft365Group `
+            $newSiteUrl = New-PnPSite -Connection $global:tenantConn -Type TeamSiteWithoutMicrosoft365Group `
                 -Title $SiteTitle `
                 -Url $siteUrl `
                 -Description $SiteDescription
@@ -199,7 +200,7 @@ elseif ($EntityType -eq "IntranetSpokeSite")
         {
             # if there is no provisioning script, create the new site
             Write-Log "New-PnPSite -Type CommunicationSite -Title $SiteTitle -Url $siteUrl -Description $SiteDescription -SiteDesign Topic"
-            $newSiteUrl = New-PnPSite -Type CommunicationSite `
+            $newSiteUrl = New-PnPSite -Connection $global:tenantConn -Type CommunicationSite `
                 -Title $SiteTitle `
                 -Url $siteUrl `
                 -Description $SiteDescription `
@@ -220,5 +221,5 @@ if ($disconnectWhenDone -eq $true)
 {
     # Disconnect from PnPOnline & SPOService
     Write-Log "Disconnect from SharePoint" -WriteToHost
-    Disconnect-PnPOnline
+    #Disconnect-PnPOnline
 }
