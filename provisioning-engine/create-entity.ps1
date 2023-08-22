@@ -33,7 +33,8 @@ param(
     [ValidateSet("", "Public", "Private")]    
     [string]$Visibility,
     [switch]$SkipGetCredentials,
-    [switch]$BatchMode
+    [switch]$BatchMode,
+    [string]$AuthMode
 )
 
 # Make the helper functions available to script
@@ -73,7 +74,13 @@ if ($SkipGetCredentials.IsPresent -eq $false)
     # Connect to SharePoint
     Write-Log "Connect-PnpOnline"
     #Connect-PnPOnline -Url $config.rootSiteUrl -Credentials $global:cred #-Scopes Group.ReadWrite.All
-	$global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
+	If($AuthMode -eq "Interactive")
+    {
+        $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
+    }
+    else{
+        $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
+    }
 
     # Connect to Teams
     Write-Log "Connect-MicrosoftTeams"
