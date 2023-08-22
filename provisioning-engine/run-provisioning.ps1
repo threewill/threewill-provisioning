@@ -32,8 +32,10 @@ param(
     [Parameter(ParameterSetName = "History")]
     [switch]$UseHistory,
     [Parameter(ParameterSetName = "History", Mandatory = $false)]
-    [string]$StatusFile = $null
-
+    [string]$StatusFile = $null,
+    [Parameter(Mandatory=$false)]
+    [ValidateSet("Interactive", "Console")]
+    [string]$AuthMode="Interactive"
 )
 
 
@@ -67,7 +69,13 @@ Write-Log $config -WriteToHost
 Write-Log "End Config Values ".PadRight(50, "*") -WriteToHost
 
 $global:cred = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
-$global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
+If($AuthMode -eq "Interactive")
+{
+    $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
+}
+else{
+    $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
+}
 $global:urls = @()
 
 enum ProcessingStatus {
@@ -221,8 +229,9 @@ try
                         Write-Log "-EntityType '$($line.EntityType)'"
                         Write-Log "-Visibility '$($line.Visibility)'"
                         Write-Log "-SkipGetCredentials -BatchMode" -WriteNewLine
+                        Write-Log "-AuthMode '$($AuthMode)'" -WriteNewLine
                         
-                        Invoke-Expression ".\create-entity.ps1 -ConfigFile '$($ConfigFile)' -Site '$($line.Site)' -SiteTitle '$($line.Title)' -SiteDescription '$($description)' -EntityType '$($line.EntityType)' -Visibility '$($line.Visibility)' -SkipGetCredentials -BatchMode"
+                        Invoke-Expression ".\create-entity.ps1 -ConfigFile '$($ConfigFile)' -Site '$($line.Site)' -SiteTitle '$($line.Title)' -SiteDescription '$($description)' -EntityType '$($line.EntityType)' -Visibility '$($line.Visibility)' -SkipGetCredentials -BatchMode -AuthMode '$($AuthMode)'"
 
                         Write-Log "[$siteUrl] Site creation complete" -WriteToHost -WriteNewLine
 
@@ -291,8 +300,9 @@ try
                     Write-Log "-EntityType '$($line.EntityType)'"
                     Write-Log "-SiteType '$($line.SiteType)'"
                     Write-Log "-SkipGetCredentials -BatchMode" -WriteNewLine
+                    Write-Log "-AuthMode '$($AuthMode)'" -WriteNewLine
 
-                    Invoke-Expression ".\provision-site.ps1 -ConfigFile '$($ConfigFile)' -Site '$($line.Site)' -SiteTitle '$($line.Title)' -EntityType '$($line.EntityType)' -SiteType '$($line.SiteType)' -SkipGetCredentials -BatchMode"
+                    Invoke-Expression ".\provision-site.ps1 -ConfigFile '$($ConfigFile)' -Site '$($line.Site)' -SiteTitle '$($line.Title)' -EntityType '$($line.EntityType)' -SiteType '$($line.SiteType)' -SkipGetCredentials -BatchMode -AuthMode '$($AuthMode)'"
 
                     Write-Log "[$siteUrl] Site provisioning complete" -WriteToHost -WriteNewLine
 

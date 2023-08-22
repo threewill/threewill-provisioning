@@ -32,7 +32,8 @@ param(
     [string]$EntityType,
     [switch]$SkipGetCredentials,
     [switch]$BatchMode,
-    [string]$SiteType
+    [string]$SiteType,
+    [string]$AuthMode
 )
 
 # Make the helper functions available to script
@@ -67,11 +68,26 @@ if ($SkipGetCredentials.IsPresent -eq $false)
 {
     Write-Log "Prompt for SharePoint Credentials"
     $global:cred = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
-	global:siteConn = Connect-PnPOnline -Url $siteUrl -Interactive -ReturnConnection -ErrorAction Stop
+    if($AuthMode -eq "Interactive")
+    {
+        $global:siteConn = Connect-PnPOnline -Url $siteUrl -Interactive -ReturnConnection -ErrorAction Stop
+    }
+    else
+    {
+        $global:siteConn = Connect-PnPOnline -Url $siteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
+    }
+	
 }
 
 $siteUrl = Get-UrlByEntityType $EntityType $Site $config
-$global:siteConn = Connect-PnPOnline -Url $siteUrl -Interactive -ReturnConnection -ErrorAction Stop
+if($AuthMode -eq "Interactive")
+{
+    $global:siteConn = Connect-PnPOnline -Url $siteUrl -Interactive -ReturnConnection -ErrorAction Stop
+}
+else
+{
+    $global:siteConn = Connect-PnPOnline -Url $siteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
+}
 
 # only check if the site exists if we are not called from another script
 # otherwise assume the parent script has verified the site exists
@@ -232,7 +248,7 @@ $webpartFiles = $config.webparts.files | Where-Object { $_.deployToTenant -eq $f
 if($webpartFiles)
 {
     Write-Log "[$siteUrl] Installing Webparts" -WriteToHost
-    . "./install-webpart.ps1" -SiteUrl $newSiteUrl -Credentials $global:cred -ConfigFile $ConfigFile -SkipGetCredentials
+    . "./install-webpart.ps1" -SiteUrl $newSiteUrl -Credentials $global:cred -ConfigFile $ConfigFile -SkipGetCredentials -AuthMode $AuthMode
 }
 
 # Make sure all open connections are closed
