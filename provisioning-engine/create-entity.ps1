@@ -34,7 +34,8 @@ param(
     [string]$Visibility,
     [switch]$SkipGetCredentials,
     [switch]$BatchMode,
-    [string]$AuthMode
+    [string]$AuthMode,
+    [string]$ClientId
 )
 
 # Make the helper functions available to script
@@ -76,7 +77,7 @@ if ($SkipGetCredentials.IsPresent -eq $false)
     #Connect-PnPOnline -Url $config.rootSiteUrl -Credentials $global:cred #-Scopes Group.ReadWrite.All
 	If($AuthMode -eq "Interactive")
     {
-        $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
+        $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ClientId $ClientId -ReturnConnection -ErrorAction Stop
     }
     else{
         $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
