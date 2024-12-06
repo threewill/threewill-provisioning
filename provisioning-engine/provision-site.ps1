@@ -33,7 +33,8 @@ param(
     [switch]$SkipGetCredentials,
     [switch]$BatchMode,
     [string]$SiteType,
-    [string]$AuthMode
+    [string]$AuthMode,
+    [string]$ClientId
 )
 
 # Make the helper functions available to script
@@ -70,7 +71,7 @@ if ($SkipGetCredentials.IsPresent -eq $false)
     $global:cred = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
     if($AuthMode -eq "Interactive")
     {
-        $global:siteConn = Connect-PnPOnline -Url $siteUrl -Interactive -ReturnConnection -ErrorAction Stop
+        $global:siteConn = Connect-PnPOnline -Url $siteUrl -Interactive -ClientId $ClientId -ReturnConnection -ErrorAction Stop
     }
     else
     {
@@ -82,7 +83,7 @@ if ($SkipGetCredentials.IsPresent -eq $false)
 $siteUrl = Get-UrlByEntityType $EntityType $Site $config
 if($AuthMode -eq "Interactive")
 {
-    $global:siteConn = Connect-PnPOnline -Url $siteUrl -Interactive -ReturnConnection -ErrorAction Stop
+    $global:siteConn = Connect-PnPOnline -Url $siteUrl -Interactive -ClientId $ClientId -ReturnConnection -ErrorAction Stop
 }
 else
 {
@@ -248,7 +249,7 @@ $webpartFiles = $config.webparts.files | Where-Object { $_.deployToTenant -eq $f
 if($webpartFiles)
 {
     Write-Log "[$siteUrl] Installing Webparts" -WriteToHost
-    . "./install-webpart.ps1" -SiteUrl $newSiteUrl -Credentials $global:cred -ConfigFile $ConfigFile -SkipGetCredentials -AuthMode $AuthMode
+    . "./install-webpart.ps1" -SiteUrl $newSiteUrl -Credentials $global:cred -ConfigFile $ConfigFile -SkipGetCredentials -AuthMode $AuthMode -ClientId $ClientId
 }
 
 # Make sure all open connections are closed

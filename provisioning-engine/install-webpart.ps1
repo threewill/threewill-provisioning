@@ -57,7 +57,8 @@ PARAM(
     [string]
     $UserName,
     [switch]$SkipGetCredentials,
-    [string]$AuthMode
+    [string]$AuthMode,
+    [string]$ClientId
 )
 BEGIN
 {
@@ -81,7 +82,7 @@ BEGIN
             $credentials = Get-Credential -Message "Please Provide Credentials with SharePoint Admin permission."
 			If($AuthMode -eq "Interactive")
             {
-                $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
+                $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ClientId $ClientId -ReturnConnection -ErrorAction Stop
             }
             else{
                 $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
@@ -92,7 +93,7 @@ BEGIN
             $credentials = Get-Credential -UserName $UserName -Message "Please provide the password for $UserName"
 			If($AuthMode -eq "Interactive")
             {
-                $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ReturnConnection -ErrorAction Stop
+                $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Interactive -ClientId $ClientId -ReturnConnection -ErrorAction Stop
             }
             else{
                 $global:tenantConn = Connect-PnPOnline -Url $config.adminSiteUrl -Credential $global:cred -ReturnConnection -ErrorAction Stop
