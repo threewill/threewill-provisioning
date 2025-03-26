@@ -95,7 +95,7 @@ else
 $siteUrl = Get-UrlByEntityType $EntityType $Site $config
 
 # Check if Site Already Exists
-$existingSite = Get-PnPTenantSite -Url $siteUrl -ErrorAction Ignore
+$existingSite = Get-PnPTenantSite -Url $siteUrl -ErrorAction Ignore -Connection $global:tenantConn
 
 $newSiteUrl = $null
 
